@@ -1,0 +1,75 @@
+version: "3.8"
+
+volumes:
+  mysql_data:
+  romm_resources:
+  romm_redis_data:
+  romm_config:
+
+networks:
+  romm-network:
+    driver: bridge
+
+services:
+  romm-db:
+    image: mariadb:latest
+    container_name: romm-db
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: MotDePasseRootSecurise456
+      MARIADB_DATABASE: romm
+      MARIADB_USER: romm-user
+      MARIADB_PASSWORD: VotreMotDePasseSecurise123
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 30s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - romm-network
+
+  romm:
+    image: rommapp/romm:latest
+    container_name: romm
+    restart: unless-stopped
+    depends_on:
+      romm-db:
+        condition: service_healthy
+    environment:
+      TZ: Europe/Brussels
+      DB_HOST: romm-db
+      DB_NAME: romm
+      DB_USER: romm-user
+      DB_PASSWD: VotreMotDePasseSecurise123
+      ROMM_AUTH_SECRET_KEY: b617fb3fdf26bc495a47ab75d369dd31192e31163d57eaefe8aefd8f01365b7c
+      SCREENSCRAPER_USER: Calplay
+      SCREENSCRAPER_PASSWORD: Jslrdm91
+    ports:
+      - "3000:8080"
+    volumes:
+      - romm_resources:/romm/resources
+      - romm_redis_data:/redis-data
+      - romm_config:/romm/config
+      - /volume1/Jeux:/romm/library:ro
+      - /volume1/docker/romm/assets:/romm/assets
+    networks:
+      - romm-network
+
+  romm-emby-bridge:
+    build:
+      context: .
+      dockerfile: romm-bridge/Dockerfile
+    container_name: romm-emby-bridge
+    restart: unless-stopped
+    depends_on:
+      - romm
+    environment:
+      TZ: Europe/Brussels
+      ROMM_BASE_URL: http://romm:8080
+    ports:
+      - "8000:8000"
+    networks:
+      - romm-network
