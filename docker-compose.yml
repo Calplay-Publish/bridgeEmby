@@ -1,5 +1,8 @@
 version: "3.8"
 
+x-pull-policy: &pull_policy
+  pull_policy: build
+
 volumes:
   mysql_data:
   romm_resources:
@@ -12,6 +15,7 @@ networks:
 
 services:
   romm-db:
+    <<: *pull_policy
     image: mariadb:latest
     container_name: romm-db
     restart: unless-stopped
@@ -32,6 +36,7 @@ services:
       - romm-network
 
   romm:
+    <<: *pull_policy
     image: rommapp/romm:latest
     container_name: romm
     restart: unless-stopped
@@ -61,7 +66,8 @@ services:
   romm-emby-bridge:
     build:
       context: .
-      dockerfile: romm-bridge/Dockerfile
+      dockerfile: Dockerfile
+    pull_policy: build
     container_name: romm-emby-bridge
     restart: unless-stopped
     depends_on:
